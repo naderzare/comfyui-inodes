@@ -72,6 +72,76 @@ class IMultilineSplit:
             lines = [line for line in lines if not any(line.startswith(prefix) for prefix in ignore_prefixes)]
         
         return (lines, lines)
+
+
+class ITimes:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "times": ("INT",),
+            },
+            "optional": {
+                "string_input": ("STRING",),
+                "list_input": ("LIST",),
+            },
+        }
+        
+    RETURN_TYPES = ("STRING")
+    RETURN_NAMES = ("prompt_strings")
+    OUTPUT_IS_LIST = (True)
+    
+    FUNCTION = "execute"
+    
+    CATEGORY = "Text Processing"
+    
+    def execute(self, times, string_input="", list_input=[], **kwargs):
+        if string_input:
+            return [string_input] * times
+        elif list_input:
+            return list_input * times
+        else:
+            return [""] * times
+        
+class IListCounter:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "list_input": ("LIST",),
+            },
+        }
+        
+    RETURN_TYPES = ("INT")
+    RETURN_NAMES = ("count")
+    
+    FUNCTION = "execute"
+    
+    CATEGORY = "Text Processing"
+    
+    def execute(self, list_input, **kwargs):
+        return (len(list_input),)
+    
+class ICutList:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "list_input": ("LIST",),
+                "start": ("INT",),
+                "end": ("INT",),
+            },
+        }
+        
+    RETURN_TYPES = ("LIST")
+    RETURN_NAMES = ("list_output")
+    
+    FUNCTION = "execute"
+    
+    CATEGORY = "Text Processing"
+    
+    def execute(self, list_input, start, end, **kwargs):
+        return (list_input[start:end],)
     
 from langchain_openai import AzureChatOpenAI
 
@@ -126,10 +196,16 @@ NODE_CLASS_MAPPINGS = {
     "IIfElse": IIfElse,
     "IMultilineSplit": IMultilineSplit,
     "IAzureAiApi": IAzureAiApi,
+    "ITimes": ITimes,
+    "IListCounter": IListCounter,
+    "ICutList": ICutList,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "IIfElse": "If-Else",
-    "IMultilineSplit": "Multiline Split",
-    "IAzureAiApi": "Azure AI API",
+    "IIfElse": "I If-Else",
+    "IMultilineSplit": "I Multiline Split",
+    "IAzureAiApi": "I Azure AI API",
+    "ITimes": "I Times",
+    "IListCounter": "I List Counter",
+    "ICutList": "I Cut List",
 }
