@@ -1,0 +1,11 @@
+{
+    "name": "i_comfy_nodes",
+    "version": "0.0.1",
+    "description": "A collection of custom nodes for ComfyUI.",
+    "author": "Nader Zare",
+    "url": "https://github.com/yourusername/my_comfy_nodes",
+    "license": "MIT",
+    "nodes": "nodes",
+    "requirements": "requirements.txt", 
+    "install_instructions": "Run `pip install -r requirements.txt` to install dependencies."
+  }

@@ -1,0 +1,19 @@
+[project]
+name = "i_comfy_nodes"
+version = "0.0.1"
+description = "A collection of custom nodes for ComfyUI."
+authors = ["Nader Zare"]
+license = "MIT"
+readme = "README.md"
+dependencies = [
+    "langchain",
+    "langchain_openai"
+]
+
+[project.urls]
+Repository = "https://github.com/yourusername/my_comfy_nodes"
+
+[tool.comfy]
+PublisherId = "yourusername"
+DisplayName = "i_comfy_nodes"
+Icon = ""
