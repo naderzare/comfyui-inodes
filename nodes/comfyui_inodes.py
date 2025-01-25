@@ -104,7 +104,7 @@ class IAzureAiApi:
     CATEGORY = "API"
 
     def execute(self, endpoint, key, api_version, deployment_name, max_tokens, prompt, **kwargs):
-        
+        print("prompt: ", prompt)
         llm = AzureChatOpenAI(
             deployment_name=deployment_name,
             max_tokens=max_tokens,
@@ -115,7 +115,8 @@ class IAzureAiApi:
 
         try:
             response = llm.invoke(prompt)
-            return response.content
+            print(response)
+            return (response.content,)
         except Exception as e:
             print(f"Failed to get chat completion: {str(e)}")
             raise ValueError(f"Failed to get chat completion: {str(e)}")
@@ -124,10 +125,11 @@ class IAzureAiApi:
 NODE_CLASS_MAPPINGS = {
     "IIfElse": IIfElse,
     "IMultilineSplit": IMultilineSplit,
+    "IAzureAiApi": IAzureAiApi,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "IIfElse": "If-Else",
     "IMultilineSplit": "Multiline Split",
-    IAzureAiApi: "Azure AI API",
+    "IAzureAiApi": "Azure AI API",
 }
