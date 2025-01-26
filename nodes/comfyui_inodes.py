@@ -523,14 +523,14 @@ class ZippingMethod(Enum):
 class IZipDirectoryCreator:
     def __init__(self):
         pass
-
+    
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "directory": ("STRING", {"default": ""}),
-                "zipping_method": ("STRING", {"default": ZippingMethod.BY_SIZE.value, "enum": [method.value for method in ZippingMethod]}),
-                "size_value(MB)": ("INT", {"default": 1024}),
+                "zipping_method": ("STRING", {"default": "bySize"} ),
+                "size_value": ("INT", {"default": 1024}),
                 "count_value": ("INT", {"default": 100}),
                 "output_filenamePattern": ("STRING", {"default": "output"}),
                 "output_path": ("STRING", {"default": ""}),
@@ -546,25 +546,31 @@ class IZipDirectoryCreator:
     CATEGORY = "File Operations"
 
     def execute(self, directory, zipping_method, size_value, count_value, output_filenamePattern, output_path, **kwargs):
-        # Change color to yellow
-        print("\x1b[33m")
-
-        print(f"Starting zip operation in directory: {directory}, zipping method: {zipping_method} with output path: {output_path}, output filename pattern: {output_filenamePattern}, size value: {size_value}, count value: {count_value}")
-        if not os.path.isdir(directory):
+        # Change color to green
+        print("\x1b[36m")
+        comfyDirectory = folder_paths.get_output_directory()
+        #read from comfydirectory + directory
+        inputDirectory = os.path.join(comfyDirectory, directory)
+        
+        output_path_final = os.path.join(inputDirectory, output_path)
+        
+        print(f"comfyDirectory: {comfyDirectory}")
+        print(f"Starting zip operation from directory: '{inputDirectory}', zipping method: {zipping_method} with output path: {output_path_final}, output filename pattern: {output_filenamePattern}, size value: {size_value}, count value: {count_value}")
+        if not os.path.isdir(inputDirectory):
             print(f"Directory does not exist: {directory}")
             raise ValueError(f"Directory does not exist: {directory}")
 
-        files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+        files = [os.path.join(inputDirectory, f) for f in os.listdir(inputDirectory) if os.path.isfile(os.path.join(inputDirectory, f))]
         if not files:
-            print(f"No files found in directory: {directory}")
-            raise ValueError(f"No files found in directory: {directory}")
+            print(f"No files found in directory: {inputDirectory}")
+            raise ValueError(f"No files found in directory: {inputDirectory}")
 
-        os.makedirs(output_path, exist_ok=True)
-        print(f"Output path created: {output_path}")
+        os.makedirs(output_path_final, exist_ok=True)
+        print(f"Output path created: {output_path_final}")
 
         def create_zip_file(zip_files, index):
             zip_filename = f"{output_filenamePattern}_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}_{index}.zip"
-            zip_filepath = os.path.join(output_path, zip_filename)
+            zip_filepath = os.path.join(output_path_final, zip_filename)
             print(f"Creating zip file: {zip_filepath}")
             with zipfile.ZipFile(zip_filepath, 'w') as zipf:
                 for file in zip_files:
