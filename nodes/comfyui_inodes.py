@@ -304,7 +304,7 @@ class IPassImage:
             "required": {
                 "images": ("IMAGE", {"tooltip": "The images to save."}),
                 "count": ("INT", {"default": 1}),
-                "is_enable": ("BOOLEAN", {"default": True, "tooltip": "Enable or disable the node. In enable mode, it just pass the count images."}),
+                "pass_all": ("BOOLEAN", {"default": True,}),
             },
         }
 
@@ -316,28 +316,29 @@ class IPassImage:
     INPUT_IS_LIST = (True, False, False,)
     OUTPUT_IS_LIST = (True,)
 
-    def pass_images(self, images, count, is_enable, **kwargs):
+    def pass_images(self, images, count, pass_all, **kwargs):
         print("$$$$$$$ Pass Image")
         count = count[0] if isinstance(count, list) else count
-        is_enable = is_enable[0] if isinstance(is_enable, list) else is_enable
+        pass_all = pass_all[0] if isinstance(pass_all, list) else pass_all
         
         print(count)
-        print(is_enable)
+        print(pass_all)
         print(len(images))
         print(images[0].shape)
         
-        if is_enable:
-            images = torch.cat(images, dim=0)
-            print(images.shape)
-            # images = list(torch.unbind(images, dim=0))
-            images = [img.unsqueeze(0) for img in torch.unbind(images, dim=0)]
-            print(len(images))
-            print(images[0].shape)
+        if pass_all:
+            return (images[:],)
+        images = torch.cat(images, dim=0)
+        print(images.shape)
+        # images = list(torch.unbind(images, dim=0))
+        images = [img.unsqueeze(0) for img in torch.unbind(images, dim=0)]
+        print(len(images))
+        print(images[0].shape)
 
-            if count < 1:
-                count = 1
-            return (images[:count],)
-        return (images[:],)
+        if count < 1:
+            count = 1
+        return (images[:count],)
+        
         
     
 class IStringsToFile:
