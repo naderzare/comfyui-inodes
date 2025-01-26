@@ -259,6 +259,7 @@ class ISaveImage:
             }
         }
 
+    INPUT_IS_LIST = (True,)
     RETURN_TYPES = ("STRING",)  # Define a dummy output type
     RETURN_NAMES = ("status",)  # Name the dummy output
     FUNCTION = "save_images"
@@ -291,6 +292,8 @@ class ISaveImage:
         # Return a status message
         return (f"Images saved successfully to {path}",)
 
+import torch
+
 class IPassImage:
     def __init__(self):
         pass
@@ -310,14 +313,31 @@ class IPassImage:
     FUNCTION = "pass_images"
     CATEGORY = "image"
     DESCRIPTION = "Pass the input images to the output."
+    INPUT_IS_LIST = (True, False, False,)
+    OUTPUT_IS_LIST = (True,)
 
     def pass_images(self, images, count, is_enable, **kwargs):
+        print("$$$$$$$ Pass Image")
         count = count[0] if isinstance(count, list) else count
         is_enable = is_enable[0] if isinstance(is_enable, list) else is_enable
         
+        print(count)
+        print(is_enable)
+        print(len(images))
+        print(images[0].shape)
+        
         if is_enable:
+            images = torch.cat(images, dim=0)
+            print(images.shape)
+            # images = list(torch.unbind(images, dim=0))
+            images = [img.unsqueeze(0) for img in torch.unbind(images, dim=0)]
+            print(len(images))
+            print(images[0].shape)
+
+            if count < 1:
+                count = 1
             return (images[:count],)
-        return (images[:1],)
+        return (images[:],)
         
     
 class IStringsToFile:
