@@ -301,7 +301,7 @@ class IPassImage:
             "required": {
                 "images": ("IMAGE", {"tooltip": "The images to save."}),
                 "count": ("INT", {"default": 1}),
-                "is_enable": ("BOOLEAN", {"default": True, "tooltip": "Enable or disable the node. In disable mode, it just pass the first image."}),
+                "is_enable": ("BOOLEAN", {"default": True, "tooltip": "Enable or disable the node. In enable mode, it just pass the count images."}),
             },
         }
 
@@ -316,9 +316,9 @@ class IPassImage:
         is_enable = is_enable[0] if isinstance(is_enable, list) else is_enable
         
         if not is_enable:
-            return (images[:1],)
+            return (images[:count],)
+        return (images[:1],)
         
-        return (images[:count],)
     
 class IStringsToFile:
     def __init__(self):
