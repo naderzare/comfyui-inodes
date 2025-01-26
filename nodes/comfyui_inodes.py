@@ -156,6 +156,7 @@ class ICutStrings:
                 "strings": ("STRING",),
                 "start": ("INT",),
                 "end": ("INT",),
+                "is_enable": ("BOOLEAN", {"default": True}),
             },
         }
         
@@ -167,7 +168,9 @@ class ICutStrings:
     
     CATEGORY = "Text Processing"
     
-    def execute(self, strings, start, end, **kwargs):
+    def execute(self, strings, start, end, is_enable, **kwargs):
+        if not is_enable[0]:
+            return (strings[:],)
         return (strings[start[0]:end[0]],)
 
 import random
