@@ -1,3 +1,5 @@
+import os
+import folder_paths
 
 class AlwaysEqualProxy(str):
     def __eq__(self, _):
@@ -233,9 +235,13 @@ from PIL import Image
 import folder_paths
 import numpy as np
 
+import os
+from PIL import Image
+import folder_paths
+import numpy as np
+
 class ISaveImage:
     def __init__(self):
-        self.output_dir = folder_paths.get_output_directory()
         self.compress_level = 4
 
     @classmethod
@@ -244,18 +250,28 @@ class ISaveImage:
             "required": {
                 "images": ("IMAGE", {"tooltip": "The images to save."}),
                 "filename_prefix": ("STRING", {"default": "ComfyUI", "tooltip": "The prefix for the file to save."})
+            },
+            "optional": {
+                "path": ("STRING", {"default": "", "tooltip": "The path to save the images to."}),
             }
         }
 
-    RETURN_TYPES = ()
+    RETURN_TYPES = ("STRING",)  # Define a dummy output type
+    RETURN_NAMES = ("status",)  # Name the dummy output
     FUNCTION = "save_images"
     CATEGORY = "image"
     DESCRIPTION = "Saves the input images to your ComfyUI output directory."
 
-    def save_images(self, images, filename_prefix="ComfyUI"):
+    def save_images(self, images, filename_prefix="ComfyUI", path="", **kwargs):
         # Generate the output folder and base filename
-        output_folder = self.output_dir
-        os.makedirs(output_folder, exist_ok=True)
+        filename_prefix = filename_prefix[0] if isinstance(filename_prefix, list) else filename_prefix
+        path = path[0] if isinstance(path, list) else path
+        comfy_path = folder_paths.get_output_directory()
+        if not path:
+            path = comfy_path
+        else:
+            path = os.path.join(comfy_path, path)
+        os.makedirs(path, exist_ok=True)
 
         for index, image in enumerate(images):
             # Convert the image tensor to a PIL image
@@ -264,12 +280,14 @@ class ISaveImage:
 
             # Create the filename for the image
             filename = f"{filename_prefix}_{index:05}.png"
-            file_path = os.path.join(output_folder, filename)
+            file_path = os.path.join(path, filename)
 
             # Save the image
             img.save(file_path, compress_level=self.compress_level)
 
-        return {}
+        # Return a status message
+        return (f"Images saved successfully to {path}",)
+
     
 class IStringsToFile:
     def __init__(self):
@@ -283,7 +301,6 @@ class IStringsToFile:
                 "filename": ("STRING", {"default": "file.txt"}),
             },
             "optional": {
-                "separator": ("STRING", {"default": ""}),
                 "path": ("STRING", {"default": ""}),
                 "overwrite": ("BOOLEAN", {"default": False}),
                 "append": ("BOOLEAN", {"default": False}),
@@ -297,11 +314,13 @@ class IStringsToFile:
 
     CATEGORY = "Text Processing"
 
-    def execute(self, strings, filename, separator, path, overwrite, append, **kwargs):
-        separator = separator[0] if isinstance(separator, list) else separator
+    def execute(self, strings, filename, path, overwrite, append, **kwargs):
         path = path[0] if isinstance(path, list) else path
         filename = filename[0] if isinstance(filename, list) else filename
-        comfy_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output")
+        comfy_path = folder_paths.get_output_directory()
+        print("path: ", path)
+        print("filename: ", filename)
+        print("comfy_path: ", comfy_path)
         if not path:
             path = comfy_path
         else:
@@ -312,10 +331,14 @@ class IStringsToFile:
             filename += ".txt"
         if not os.path.exists(path):
             os.makedirs(path)
+        print("path: ", path)
+        print("filename: ", filename)
+        print("comfy_path: ", comfy_path)
         filepath = os.path.join(path, filename)
+        print("filename: ", filename)
         mode = "w" if overwrite else "a" if append else "w"
         with open(filepath, mode) as f:
-            f.write(separator.join(strings))
+            f.write('\n'.join(strings))
         return (filepath,)
     
 class IPromptGenerator:
@@ -358,6 +381,7 @@ class IPromptGenerator:
 
     
 from langchain_openai import AzureChatOpenAI
+
 
 class IAzureAiApi:
     def __init__(self):
