@@ -315,7 +315,7 @@ class IPassImage:
         count = count[0] if isinstance(count, list) else count
         is_enable = is_enable[0] if isinstance(is_enable, list) else is_enable
         
-        if not is_enable:
+        if is_enable:
             return (images[:count],)
         return (images[:1],)
         
