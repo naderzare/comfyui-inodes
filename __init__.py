@@ -1,19 +1,33 @@
 from .nodes.comfyui_inodes import *
 
+WEB_DIRECTORY = "./web"
+
 NODE_CLASS_MAPPINGS = {
     "IIfElse": IIfElse,
-    "IMultilineSplit": IMultilineSplit,
+    "IMultilineSplitToStrings": IMultilineSplitToStrings,
     "IAzureAiApi": IAzureAiApi,
-    "ITimes": ITimes,
-    "IListCounter": IListCounter,
-    "ICutList": ICutList,
+    "ITimesToStrings": ITimesToStrings,
+    "IStringsCounter": IStringsCounter,
+    "ICutStrings": ICutStrings,
+    "IRandomChoiceToStrings": IRandomChoiceToStrings,
+    "IStringsToString": IStringsToString,
+    "IStringsToFile": IStringsToFile,
+    "ISaveImage": ISaveImage,
+    "IPromptGenerator": IPromptGenerator,
+    "IPostProcessLLMResponse": IPostProcessLLMResponse,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "IIfElse": "I If-Else",
-    "IMultilineSplit": "I Multiline Split",
+    "IIfElse": "I If Else",
+    "IMultilineSplitToStrings": "I Multiline Split to Strings",
     "IAzureAiApi": "I Azure AI API",
-    "ITimes": "I Times",
-    "IListCounter": "I List Counter",
-    "ICutList": "I Cut List",
+    "ITimesToStrings": "I Times to Strings",
+    "IStringsCounter": "I Strings Counter",
+    "ICutStrings": "I Cut Strings",
+    "IRandomChoiceToStrings": "I Random Choice to Strings",
+    "IStringsToString": "I Strings to String",
+    "IStringsToFile": "I Strings to File",
+    "ISaveImage": "I Save Image",
+    "IPromptGenerator": "I Prompt Generator",
+    "IPostProcessLLMResponse": "I Post Process LLM Response",
 }
