@@ -512,4 +512,89 @@ class IPostProcessLLMResponse:
             response = response.split(word)[1]
         
         return (response,)
-    
+
+
+import zipfile
+from datetime import datetime
+from enum import Enum
+class ZippingMethod(Enum):
+    BY_SIZE = "bySize"
+    BY_COUNT = "byCount"
+class IZipDirectoryCreator:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "directory": ("STRING", {"default": ""}),
+                "zipping_method": ("STRING", {"default": ZippingMethod.BY_SIZE.value, "enum": [method.value for method in ZippingMethod]}),
+                "size_value(MB)": ("INT", {"default": 1024}),
+                "count_value": ("INT", {"default": 100}),
+                "output_filenamePattern": ("STRING", {"default": "output"}),
+                "output_path": ("STRING", {"default": ""}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("zip_file_paths",)
+    OUTPUT_IS_LIST = (True,)
+
+    FUNCTION = "execute"
+
+    CATEGORY = "File Operations"
+
+    def execute(self, directory, zipping_method, size_value, count_value, output_filenamePattern, output_path, **kwargs):
+        # Change color to yellow
+        print("\x1b[33m")
+
+        print(f"Starting zip operation in directory: {directory}, zipping method: {zipping_method} with output path: {output_path}, output filename pattern: {output_filenamePattern}, size value: {size_value}, count value: {count_value}")
+        if not os.path.isdir(directory):
+            print(f"Directory does not exist: {directory}")
+            raise ValueError(f"Directory does not exist: {directory}")
+
+        files = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+        if not files:
+            print(f"No files found in directory: {directory}")
+            raise ValueError(f"No files found in directory: {directory}")
+
+        os.makedirs(output_path, exist_ok=True)
+        print(f"Output path created: {output_path}")
+
+        def create_zip_file(zip_files, index):
+            zip_filename = f"{output_filenamePattern}_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}_{index}.zip"
+            zip_filepath = os.path.join(output_path, zip_filename)
+            print(f"Creating zip file: {zip_filepath}")
+            with zipfile.ZipFile(zip_filepath, 'w') as zipf:
+                for file in zip_files:
+                    zipf.write(file, os.path.basename(file))
+                    print(f"Added file to zip: {file}")
+            return zip_filepath
+
+        zip_files = []
+        zip_file_paths = []
+        if zipping_method == ZippingMethod.BY_SIZE.value:
+            current_size = 0
+            for file in files:
+                file_size = os.path.getsize(file)
+                if current_size + file_size > size_value * 1024 * 1024:
+                    zip_file_paths.append(create_zip_file(zip_files, len(zip_file_paths)))
+                    zip_files = []
+                    current_size = 0
+                zip_files.append(file)
+                current_size += file_size
+            if zip_files:
+                zip_file_paths.append(create_zip_file(zip_files, len(zip_file_paths)))
+        elif zipping_method == ZippingMethod.BY_COUNT.value:
+            for i in range(0, len(files), count_value):
+                zip_files = files[i:i + count_value]
+                zip_file_paths.append(create_zip_file(zip_files, len(zip_file_paths)))
+        else:
+            print(f"Invalid zipping method: {zipping_method}")
+            raise ValueError(f"Invalid zipping method: {zipping_method}")
+
+        print(f"Zip operation completed. Created files: {zip_file_paths}")
+        # Reset color
+        print("\x1b[0m")
+        return (", ".join(zip_file_paths),)

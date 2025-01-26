@@ -16,6 +16,7 @@ NODE_CLASS_MAPPINGS = {
     "IPromptGenerator": IPromptGenerator,
     "IPostProcessLLMResponse": IPostProcessLLMResponse,
     "IPassImage": IPassImage,
+    "IZipDirectoryCreator": IZipDirectoryCreator,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -32,4 +33,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "IPromptGenerator": "I Prompt Generator",
     "IPostProcessLLMResponse": "I Post Process LLM Response",
     "IPassImage": "I Pass Image",
+    "IZipDirectoryCreator": "Zip Directory Creator"
 }
