@@ -199,7 +199,7 @@ class IRandomChoiceToStrings:
     def execute(self, strings, n, **kwargs):
         n = n[0] if isinstance(n, list) else n
         if n > len(strings):
-            raise ValueError("n cannot be greater than the length of the list")
+            return (strings[:],)
         return (random.sample(strings, n),)
     
 class IStringsToString:
