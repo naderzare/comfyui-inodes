@@ -15,6 +15,7 @@ NODE_CLASS_MAPPINGS = {
     "ISaveImage": ISaveImage,
     "IPromptGenerator": IPromptGenerator,
     "IPostProcessLLMResponse": IPostProcessLLMResponse,
+    "IPassImage": IPassImage,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -30,4 +31,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ISaveImage": "I Save Image",
     "IPromptGenerator": "I Prompt Generator",
     "IPostProcessLLMResponse": "I Post Process LLM Response",
+    "IPassImage": "I Pass Image",
 }

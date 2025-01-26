@@ -291,6 +291,34 @@ class ISaveImage:
         # Return a status message
         return (f"Images saved successfully to {path}",)
 
+class IPassImage:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "images": ("IMAGE", {"tooltip": "The images to save."}),
+                "count": ("INT", {"default": 1}),
+                "is_enable": ("BOOLEAN", {"default": True, "tooltip": "Enable or disable the node. In disable mode, it just pass the first image."}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("images",)  # Name the dummy output
+    FUNCTION = "pass_images"
+    CATEGORY = "image"
+    DESCRIPTION = "Pass the input images to the output."
+
+    def pass_images(self, images, count, is_enable, **kwargs):
+        count = count[0] if isinstance(count, list) else count
+        is_enable = is_enable[0] if isinstance(is_enable, list) else is_enable
+        
+        if not is_enable:
+            return (images[:1],)
+        
+        return (images[:count],)
     
 class IStringsToFile:
     def __init__(self):
