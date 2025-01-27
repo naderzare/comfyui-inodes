@@ -1,6 +1,5 @@
 from .nodes.comfyui_inodes import *
-
-WEB_DIRECTORY = "./web"
+from .nodes.comfyui_llm import *
 
 NODE_CLASS_MAPPINGS = {
     "IIfElse": IIfElse,
@@ -16,6 +15,10 @@ NODE_CLASS_MAPPINGS = {
     "IPromptGenerator": IPromptGenerator,
     "IPostProcessLLMResponse": IPostProcessLLMResponse,
     "IPassImage": IPassImage,
+    "ILoadAzureAiApi": ILoadAzureAiApi,
+    "ILLMExecute": ILLMExecute,
+    "ILLMExecute2": ILLMExecute2,
+    "ILoadOllamaApi": ILoadOllamaApi,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -32,4 +35,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "IPromptGenerator": "I Prompt Generator",
     "IPostProcessLLMResponse": "I Post Process LLM Response",
     "IPassImage": "I Pass Image",
+    "ILoadAzureAiApi": "I Load Azure AI API",
+    "ILLMExecute": "I LLM Execute",
+    "ILLMExecute2": "I LLM Execute 2",
+    "ILoadOllamaApi": "I Load Ollama API",
 }

@@ -8,6 +8,7 @@ readme = "README.md"
 dependencies = [
     "langchain",
     "langchain_openai",
+    "langchain_ollama"
 ]
 
 [project.urls]
