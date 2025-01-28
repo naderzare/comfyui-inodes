@@ -3,6 +3,7 @@ from langchain_openai import AzureChatOpenAI
 from langchain_openai import AzureChatOpenAI
 from langchain_ollama import OllamaLLM
 import requests
+import datetime
 
 class IAzureAiApi:
     def __init__(self):
@@ -49,6 +50,11 @@ class IAzureAiApi:
         except Exception as e:
             print(f"Failed to get chat completion: {str(e)}")
             raise ValueError(f"Failed to get chat completion: {str(e)}")
+    
+    @classmethod
+    def IS_CHANGED(cls, *args, **kwargs):
+            #always update
+            return {"dummy": str(datetime.datetime.now())}
         
 class ILoadAzureAiApi:
     def __init__(self):
@@ -92,6 +98,12 @@ class ILoadAzureAiApi:
             print(f"Failed to get chat completion: {str(e)}")
             raise ValueError(f"Failed to get chat completion: {str(e)}")
     
+    @classmethod
+    def IS_CHANGED(cls, *args, **kwargs):
+        print("ILOAD AZURE AI API Always update")
+        #always update
+        return {"dummy": str(datetime.datetime.now())}
+    
 class ILLMExecute:
     def __init__(self):
         pass
@@ -130,6 +142,12 @@ class ILLMExecute:
         except Exception as e:
             print(f"Failed to get chat completion: {str(e)}")
             raise ValueError(f"Failed to get chat completion: {str(e)}")
+    
+    @classmethod
+    def IS_CHANGED(cls, *args, **kwargs):
+            #always update
+            print("ILLMExecute Always update")
+            return {"dummy": str(datetime.datetime.now())}
 
 class ILLMExecute2:
     def __init__(self):
@@ -174,6 +192,11 @@ class ILLMExecute2:
         except Exception as e:
             print(f"Failed to get chat completion: {str(e)}")
             raise ValueError(f"Failed to get chat completion: {str(e)}")
+    
+    @classmethod
+    def IS_CHANGED(cls, *args, **kwargs):
+            #always update
+            return {"dummy": str(datetime.datetime.now())}
         
 class IOllama:
     def __init__(self, url, port, model):
@@ -238,6 +261,11 @@ class ILoadOllamaApi:
             print(f"Failed to get chat completion: {str(e)}")
             raise ValueError(f"Failed to get chat completion: {str(e)}")
     
+    @classmethod
+    def IS_CHANGED(cls, *args, **kwargs):
+            #always update
+            return {"dummy": str(datetime.datetime.now())}
+    
 class IPostProcessLLMResponse:
     def __init__(self):
         pass
@@ -268,4 +296,9 @@ class IPostProcessLLMResponse:
             response = response.split(word)[1]
         
         return (response,)
+    
+    @classmethod
+    def IS_CHANGED(cls, *args, **kwargs):
+            #always update
+            return {"dummy": str(datetime.datetime.now())}
     
