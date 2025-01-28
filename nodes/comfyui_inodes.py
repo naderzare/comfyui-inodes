@@ -129,34 +129,36 @@ class ITimesToStrings:
             return {"dummy": str(datetime.datetime.now())}
 
 
+
 class IStringsCounter:
     def __init__(self):
         pass
-    
+
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": {
                 "strings": ("STRING",),
             },
         }
-        
+
+    # Return an integer for downstream usage
     RETURN_TYPES = ("INT",)
-    RETURN_NAMES = ("count",)
+    RETURN_NAMES = ("result",)
     INPUT_IS_LIST = True
     OUTPUT_NODE = True
     FUNCTION = "execute"
-    
+
     CATEGORY = "Text Processing"
     
     def execute(self, strings, **kwargs):
-        print("$$$$$$$$$$$$$$$$$$$$$$$$$")
-        print(type(strings))
-        print(type(strings[0]))
-        print(strings)
+        # `strings` will be a list of Python strings
         count = len(strings)
-        # Return both the UI display and the actual result
-        return {"ui": {"text": f"Count: {count}"}, "result": (count,)}
+
+        # Here is the key: return a dict with both `result` (the int)
+        # and a UI list with a text entry.
+            
+        return {"ui": {"text": str(count)}, "result": (count,), }
     @classmethod
     def IS_CHANGED(cls, *args, **kwargs):
             #always update
@@ -272,58 +274,58 @@ from PIL import Image
 import folder_paths
 import numpy as np
 
-class ISaveImage:
-    def __init__(self):
-        self.compress_level = 4
+# class ISaveImage:
+#     def __init__(self):
+#         self.compress_level = 4
 
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "images": ("IMAGE", {"tooltip": "The images to save."}),
-                "filename_prefix": ("STRING", {"default": "ComfyUI", "tooltip": "The prefix for the file to save."})
-            },
-            "optional": {
-                "path": ("STRING", {"default": "", "tooltip": "The path to save the images to."}),
-            }
-        }
+#     @classmethod
+#     def INPUT_TYPES(cls):
+#         return {
+#             "required": {
+#                 "images": ("IMAGE", {"tooltip": "The images to save."}),
+#                 "filename_prefix": ("STRING", {"default": "ComfyUI", "tooltip": "The prefix for the file to save."})
+#             },
+#             "optional": {
+#                 "path": ("STRING", {"default": "", "tooltip": "The path to save the images to."}),
+#             }
+#         }
 
-    INPUT_IS_LIST = (True,)
-    RETURN_TYPES = ("STRING",)  # Define a dummy output type
-    RETURN_NAMES = ("status",)  # Name the dummy output
-    FUNCTION = "save_images"
-    CATEGORY = "image"
-    DESCRIPTION = "Saves the input images to your ComfyUI output directory."
+#     INPUT_IS_LIST = (True,)
+#     RETURN_TYPES = ("STRING",)  # Define a dummy output type
+#     RETURN_NAMES = ("status",)  # Name the dummy output
+#     FUNCTION = "save_images"
+#     CATEGORY = "image"
+#     DESCRIPTION = "Saves the input images to your ComfyUI output directory."
 
-    def save_images(self, images, filename_prefix="ComfyUI", path="", **kwargs):
-        # Generate the output folder and base filename
-        filename_prefix = filename_prefix[0] if isinstance(filename_prefix, list) else filename_prefix
-        path = path[0] if isinstance(path, list) else path
-        comfy_path = folder_paths.get_output_directory()
-        if not path:
-            path = comfy_path
-        else:
-            path = os.path.join(comfy_path, path)
-        os.makedirs(path, exist_ok=True)
+#     def save_images(self, images, filename_prefix="ComfyUI", path="", **kwargs):
+#         # Generate the output folder and base filename
+#         filename_prefix = filename_prefix[0] if isinstance(filename_prefix, list) else filename_prefix
+#         path = path[0] if isinstance(path, list) else path
+#         comfy_path = folder_paths.get_output_directory()
+#         if not path:
+#             path = comfy_path
+#         else:
+#             path = os.path.join(comfy_path, path)
+#         os.makedirs(path, exist_ok=True)
 
-        for index, image in enumerate(images):
-            # Convert the image tensor to a PIL image
-            image_array = 255. * image.cpu().numpy()
-            img = Image.fromarray(np.clip(image_array, 0, 255).astype(np.uint8))
+#         for index, image in enumerate(images):
+#             # Convert the image tensor to a PIL image
+#             image_array = 255. * image.cpu().numpy()
+#             img = Image.fromarray(np.clip(image_array, 0, 255).astype(np.uint8))
 
-            # Create the filename for the image
-            filename = f"{filename_prefix}_{index:05}.png"
-            file_path = os.path.join(path, filename)
+#             # Create the filename for the image
+#             filename = f"{filename_prefix}_{index:05}.png"
+#             file_path = os.path.join(path, filename)
 
-            # Save the image
-            img.save(file_path, compress_level=self.compress_level)
+#             # Save the image
+#             img.save(file_path, compress_level=self.compress_level)
 
-        # Return a status message
-        return (f"Images saved successfully to {path}",)
-    @classmethod
-    def IS_CHANGED(cls, *args, **kwargs):
-            #always update
-            return {"dummy": str(datetime.datetime.now())}
+#         # Return a status message
+#         return (f"Images saved successfully to {path}",)
+#     @classmethod
+#     def IS_CHANGED(cls, *args, **kwargs):
+#             #always update
+#             return {"dummy": str(datetime.datetime.now())}
 
 import torch
 
@@ -480,10 +482,9 @@ class IPromptGenerator:
             return {"dummy": str(datetime.datetime.now())}
         
 class ISaveImage:
+    counter = 0
     def __init__(self):
-        self.output_dir = folder_paths.get_output_directory()
         self.type = "output"
-        self.prefix_append = ""
         self.compress_level = 4
 
     @classmethod
@@ -491,52 +492,220 @@ class ISaveImage:
         return {
             "required": {
                 "images": ("IMAGE", {"tooltip": "The images to save."}),
-                "filename_prefix": ("STRING", {"default": "ComfyUI", "tooltip": "The prefix for the file to save. This may include formatting information such as %date:yyyy-MM-dd% or %Empty Latent Image.width% to include values from nodes."})
+                "filename_prefix": ("STRING", {"default": "ComfyUI"}),
+                "path": ("STRING", {"default": ""}),
+                "show_all": ("BOOLEAN", {"default": False}),
+                "show_count": ("INT", {"default": 1}),
+                "show_preview": ("BOOLEAN", {"default": False}),
             },
             "hidden": {
                 "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
             },
         }
 
-    RETURN_TYPES = ()
+    # We'll now return one string, which is the path, so next nodes can receive it.
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("saved_path",)
     FUNCTION = "save_images"
 
     OUTPUT_NODE = True
 
     CATEGORY = "image"
-    DESCRIPTION = "Saves the input images to your ComfyUI output directory."
+    DESCRIPTION = "Saves the input images to your ComfyUI output directory, shows optional previews, and returns the path for the next node."
+    
+    def get_file_name(self, filename_prefix, path):
+        files_in_dir = os.listdir(path)
+        new_filename = f"{filename_prefix}_{ISaveImage.counter}.png"
+        while new_filename in files_in_dir:
+            ISaveImage.counter += 1
+            new_filename = f"{filename_prefix}_{ISaveImage.counter}.png"
+        ISaveImage.counter += 1
+        return new_filename
 
-    def save_images(self, images, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
-        print("#################################", images)
-        filename_prefix += self.prefix_append
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0])
-        results = list()
+    def save_images(self, images, filename_prefix="ComfyUI", path="", show_all=False, show_count=1, show_preview=False, **kwargs):
+        show_all = show_all[0] if isinstance(show_all, list) else show_all
+        show_count = show_count[0] if isinstance(show_count, list) else show_count
+        show_preview = show_preview[0] if isinstance(show_preview, list) else show_preview
+        comfy_path = folder_paths.get_output_directory()
+        path = path[0] if isinstance(path, list) else path
+        opath = os.path.join(comfy_path, path) if path else comfy_path
+        os.makedirs(opath, exist_ok=True)
+        filename_prefix = filename_prefix[0] if isinstance(filename_prefix, list) else filename_prefix
+        
+        results = []
         for (batch_number, image) in enumerate(images):
-            i = 255. * image.cpu().numpy()
+            i = 255.0 * image.cpu().numpy()
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
-            metadata = None
-            filename_with_batch_num = filename.replace("%batch_num%", str(batch_number))
-            file = f"{filename_with_batch_num}_{counter:05}_.png"
-            img.save(os.path.join(full_output_folder, file), pnginfo=metadata, compress_level=self.compress_level)
+            # If you have extra PNG metadata, you could pass it with pnginfo
+            file = self.get_file_name(filename_prefix, opath)
+            img.save(os.path.join(opath, file), compress_level=self.compress_level)
             results.append({
                 "filename": file,
-                "subfolder": subfolder,
+                "subfolder": opath,  # the final directory path
                 "type": self.type
             })
-            counter += 1
 
-        return { "ui": { "images": results } }
+        # Return a dictionary where:
+        # 1) 'ui': { 'images': ... } is optional, controlling what is displayed in the UI.
+        # 2) 'saved_path' is the string that goes to the next node.
+        if not show_preview:
+            return {"saved_path": opath}
+        if show_all:
+            return {"saved_path": opath, "ui": {"images": results}}
+        else:
+            return {"saved_path": opath, "ui": {"images": results[:show_count]}}
 
-class IPreviewImage(ISaveImage):
+
+class ISaveText:
     def __init__(self):
-        self.output_dir = folder_paths.get_temp_directory()
-        self.type = "temp"
-        self.prefix_append = "_temp_" + ''.join(random.choice("abcdefghijklmnopqrstupvxyz") for x in range(5))
-        self.compress_level = 1
-
+        pass
+    
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"images": ("IMAGE", ), },
-                "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
-                }
+        return {
+            "required": {
+                "text": ("STRING",),
+                "filename": ("STRING",),
+                "path": ("STRING",),
+            },
+        }
+        
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "execute"
+    OUTPUT_NODE = True
+    CATEGORY = "Text Processing"
+    
+    def execute(self, text, filename, path, **kwargs):
+        text = text[0] if isinstance(text, list) else text
+        filename = filename[0] if isinstance(filename, list) else filename
+        path = path[0] if isinstance(path, list) else path
+        comfy_path = folder_paths.get_output_directory()
+        if not path:
+            path = comfy_path
+        else:
+            path = os.path.join(comfy_path, path)
+        os.makedirs(path, exist_ok=True)
+        filepath = os.path.join(path, filename)
+        with open(filepath, "w") as f:
+            f.write(text)
+        return (filepath,)
+    
+import os
+import zipfile
+import math
+
+class IZipImages:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "path": ("STRING", {"default": ""}),
+                "files_count": ("INT", {"default": 100}),
+                "files_size": ("FLOAT", {"default": 100}),
+                "by_count": ("BOOLEAN", {"default": True}),
+                "signal": ("STRING", {"default": ""}),
+            },
+        }
+        
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "zip_images_in_chunks"
+    OUTPUT_NODE = True
+    CATEGORY = "File Operations"
+
+    def zip_images_in_chunks(self, path, files_count, files_size, by_count, signal=None, **kwargs):
+        """
+        Zips image files (.png, .jpg, .jpeg, etc.) from a given path into multiple zip archives.
+
+        If by_count is True, each zip file will contain up to `files_count` images.
+        If by_count is False, each zip file will contain images until their total size in MB reaches `files_size`.
+
+        :param path: The directory path containing images.
+        :param files_count: The number of files per zip if by_count is True.
+        :param files_size: The size in MB for each zip file if by_count is False.
+        :param by_count: Boolean indicating whether to split by file count or by file size.
+        """
+        comfy_path = folder_paths.get_output_directory()
+        path = path[0] if isinstance(path, list) else path
+        files_count = files_count[0] if isinstance(files_count, list) else files_count
+        files_size = files_size[0] if isinstance(files_size, list) else files_size
+        by_count = by_count[0] if isinstance(by_count, list) else by_count
+        
+        if not path:
+            path = comfy_path
+        else:
+            path = os.path.join(comfy_path, path)
+
+        # Gather all image files (case-insensitive match of .jpg or .png)
+        valid_ext = {'.png', '.jpg', '.jpeg'}
+        image_files = []
+
+        # Traverse the directory
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                ext = os.path.splitext(file)[1].lower()
+                if ext in valid_ext:
+                    image_files.append(os.path.join(root, file))
+
+        # Sort images by name (optional, but consistent)
+        image_files.sort()
+
+        if not image_files:
+            print("No image files found.")
+            return (None,)
+
+        zip_index = 1
+        current_zip_file = None
+        current_zip = None
+
+        def start_new_zip(index):
+            # Close old zip if it exists
+            if current_zip:
+                current_zip.close()
+            zip_filename = os.path.join(path, f"images_part_{index}.zip")
+            return zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED)
+
+        # Initialize first zip
+        current_zip = start_new_zip(zip_index)
+
+        # Trackers
+        file_count_in_zip = 0
+        current_size_mb = 0.0
+
+        for image_path in image_files:
+            file_size_mb = os.path.getsize(image_path) / (1024 * 1024.0)
+
+            if by_count:
+                # If adding another file exceeds the files_count limit, start a new zip
+                if file_count_in_zip >= files_count:
+                    current_zip.close()
+                    zip_index += 1
+                    current_zip = start_new_zip(zip_index)
+                    file_count_in_zip = 0
+                    current_size_mb = 0.0
+            else:
+                # If adding this file exceeds the files_size limit, start a new zip
+                if current_size_mb + file_size_mb > files_size:
+                    current_zip.close()
+                    zip_index += 1
+                    current_zip = start_new_zip(zip_index)
+                    file_count_in_zip = 0
+                    current_size_mb = 0.0
+
+            # Add file to current zip
+            arcname = os.path.relpath(image_path, start=path)
+            current_zip.write(image_path, arcname)
+
+            # Update trackers
+            file_count_in_zip += 1
+            current_size_mb += file_size_mb
+
+        # Close the last zip
+        if current_zip:
+            current_zip.close()
+
+        print(f"Zipping complete. Created {zip_index} zip file(s).")
+        
+        return (path,)

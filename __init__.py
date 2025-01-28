@@ -11,7 +11,6 @@ NODE_CLASS_MAPPINGS = {
     "IRandomChoiceToStrings": IRandomChoiceToStrings,
     "IStringsToString": IStringsToString,
     "IStringsToFile": IStringsToFile,
-    "ISaveImage": ISaveImage,
     "IPromptGenerator": IPromptGenerator,
     "IPostProcessLLMResponse": IPostProcessLLMResponse,
     "IPassImage": IPassImage,
@@ -19,6 +18,9 @@ NODE_CLASS_MAPPINGS = {
     "ILLMExecute": ILLMExecute,
     "ILLMExecute2": ILLMExecute2,
     "ILoadOllamaApi": ILoadOllamaApi,
+    "ISaveImage" : ISaveImage,
+    "ISaveText" : ISaveText,
+    "IZipImages" : IZipImages,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -31,7 +33,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "IRandomChoiceToStrings": "I Random Choice to Strings",
     "IStringsToString": "I Strings to String",
     "IStringsToFile": "I Strings to File",
-    "ISaveImage": "I Save Image",
     "IPromptGenerator": "I Prompt Generator",
     "IPostProcessLLMResponse": "I Post Process LLM Response",
     "IPassImage": "I Pass Image",
@@ -39,4 +40,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ILLMExecute": "I LLM Execute",
     "ILLMExecute2": "I LLM Execute 2",
     "ILoadOllamaApi": "I Load Ollama API",
+    "ISaveImage" : "I Save Image",
+    "ISaveText" : "I Save Text",
+    "IZipImages" : "I Zip Images",
 }
