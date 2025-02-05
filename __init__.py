@@ -21,6 +21,9 @@ NODE_CLASS_MAPPINGS = {
     "ISaveImage" : ISaveImage,
     "ISaveText" : ISaveText,
     "IZipImages" : IZipImages,
+    "IMergeImages": IMergeImages,
+    "IFinalizeProject": IFinalizeProject,
+    "IUploadToGoogleDrive": IUploadToGoogleDrive,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -43,4 +46,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ISaveImage" : "I Save Image",
     "ISaveText" : "I Save Text",
     "IZipImages" : "I Zip Images",
+    "IMergeImages": "I Merge Images",
+    "IFinalizeProject": "I Finalize Project",
+    "IUploadToGoogleDrive": "I Upload to Google Drive",
 }

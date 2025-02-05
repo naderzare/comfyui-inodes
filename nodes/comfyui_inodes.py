@@ -611,6 +611,7 @@ class IZipImages:
         }
         
     RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("saved_path",)
     FUNCTION = "zip_images_in_chunks"
     OUTPUT_NODE = True
     CATEGORY = "File Operations"
@@ -709,3 +710,274 @@ class IZipImages:
         print(f"Zipping complete. Created {zip_index} zip file(s).")
         
         return (path,)
+
+
+class IMergeImages:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "path": ("STRING", {"default": ""}),
+                "in_prefix": ("STRING", {"default": "image"}),
+                "out_prefix": ("STRING", {"default": "merged"}),
+                "count_on_x": ("INT", {"default": 5}),
+                "requested_height": ("INT", {"default": 1800}),
+                "requested_width": ("INT", {"default": 1800}),
+                "times": ("INT", {"default": 1}),
+            },
+        }
+        
+    RETURN_TYPES = ("STRING","STRING",)
+    RETURN_NAMES = ("saved_path", "out_prefix")
+    OUTPUT_IS_LIST = (False, False,)
+    FUNCTION = "merge_images"
+    OUTPUT_NODE = False
+    CATEGORY = "Image Processing"
+    
+    def merge_images(self, path, in_prefix, out_prefix, count_on_x, requested_height, requested_width, times, **kwargs):
+        for counter in range(times):
+            valid_extensions = (".jpg", ".jpeg", ".png", ".bmp", ".gif")
+            all_images = [
+                os.path.join(path, f) for f in os.listdir(path)
+                if os.path.splitext(f.lower())[-1] in valid_extensions and f.startswith(in_prefix)
+            ]
+            
+            if not all_images:
+                raise ValueError(f"No valid images found in directory: {path}")
+
+            # --- Randomly pick ONE image to get base dimensions (w, h) ---
+            sample_image_path = random.choice(all_images)
+            with Image.open(sample_image_path) as img_sample:
+                w, h = img_sample.size  # original dimensions of the image
+            
+            # --- 2-4. Compute new_w, t, new_h ---
+            new_w = requested_width / float(count_on_x)
+            t = new_w / float(w)
+            new_h = t * float(h)
+            
+            # --- 5. Compute count_on_y ---
+            #     We use floor division for integer math, then +1
+            count_on_y = int(requested_height // new_h) + 1
+            
+            # --- 6. Calculate how many total images we need ---
+            r = count_on_x * count_on_y
+            
+            if len(all_images) < r:
+                all_images = all_images * math.ceil(r / len(all_images)) 
+            
+            # Randomly pick r images (no repetition). 
+            # If you want duplicates possible, you could do something else.
+            chosen_images = random.sample(all_images, r)
+            
+            # --- 7. Create the final mosaic image ---
+            final_mosaic_width = int(new_w) * count_on_x
+            final_mosaic_height = int(new_h) * count_on_y
+
+            mosaic_image = Image.new('RGB', (final_mosaic_width, final_mosaic_height))
+            
+            # --- Paste images row by row ---
+            idx = 0
+            for y in range(count_on_y):
+                for x in range(count_on_x):
+                    img_path = chosen_images[idx]
+                    idx += 1
+                    
+                    # Open and resize
+                    with Image.open(img_path) as im:
+                        im_resized = im.resize(
+                            (int(new_w), int(new_h)),
+                            resample=Image.Resampling.LANCZOS
+                        )
+                    
+                    # Compute top-left corner for this tile
+                    left = x * int(new_w)
+                    top = y * int(new_h)
+                    
+                    # Paste the tile
+                    mosaic_image.paste(im_resized, (left, top))
+            
+            # --- Save the final mosaic ---
+            output_path = os.path.join(path, f"{out_prefix}_{counter}.jpg")
+            counter += 1
+            mosaic_image.save(output_path)
+            print(f"Saved mosaic to '{output_path}'.")
+            
+        return (path, out_prefix,)
+    
+
+class IFinalizeProject:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "path": ("STRING", {"default": ""}),
+            },
+            "optional": {
+                "anything": (any_type, {}), 
+                "except_prefix": ("STRING", {"default": ""}),
+            },
+        }
+        
+    RETURN_TYPES = ("STRING", "STRING")
+    OUTPUT_IS_LIST = (False, False)
+    RETURN_NAMES = ("zip_path", "saved_path",)
+    FUNCTION = "finalize_project"
+    OUTPUT_NODE = False
+    CATEGORY = "File Operations"
+    
+    def finalize_project(self, path, **kwargs):
+        # 
+        path = path[0] if isinstance(path, list) else path
+        comfy_path = folder_paths.get_output_directory()
+        except_prefix = kwargs.get("except_prefix", "")
+        except_prefix = except_prefix[0] if isinstance(except_prefix, list) else except_prefix
+        
+        # remove all images in path except prefix
+        image_postfix = [".jpg", ".jpeg", ".png", ".bmp", ".gif"]
+        for f in os.listdir(path):
+            if f.startswith(except_prefix):
+                continue
+            if os.path.splitext(f.lower())[-1] in image_postfix:
+                os.remove(os.path.join(path, f))
+    
+        # zip the path and put it into comfy_path
+        project_name = os.path.basename(path)
+        zip_filename = os.path.join(comfy_path, f"{project_name}.zip")
+        with zipfile.ZipFile(zip_filename, 'w') as zipf:
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), path))
+        
+        return (zip_filename, path)
+    
+import os
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from datetime import datetime
+
+class IUploadToGoogleDrive:
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "path": ("STRING", {"default": ""}),
+                "parent_folder_id": ("STRING", {"default": ""}),
+            },
+            "optional": {
+                "service_account_file_path": ("STRING", {"default": ""}),
+                "service_account_json": ("STRING", {"default": ""}),
+                "prefix": ("STRING", {"default": "merged"}),
+                "suffix": ("STRING", {"default": "zip,txt"}),
+            },
+        }
+        
+    RETURN_TYPES = ("STRING",)
+    OUTPUT_IS_LIST = (False,)
+    FUNCTION = "upload_to_google_drive"
+    OUTPUT_NODE = False
+    CATEGORY = "File Operations"
+    
+    def upload_to_google_drive(self, path, parent_folder_id, **kwargs):
+        print("Upload to Google Drive")
+        path = path[0] if isinstance(path, list) else path
+        parent_folder_id = parent_folder_id[0] if isinstance(parent_folder_id, list) else parent_folder_id
+        service_account_file_path = kwargs.get("service_account_file_path", "")
+        service_account_file_path = service_account_file_path[0] if isinstance(service_account_file_path, list) else service_account_file_path
+        service_account_json = kwargs.get("service_account_json", "")
+        service_account_json = service_account_json[0] if isinstance(service_account_json, list) else service_account_json
+        prefix = kwargs.get("prefix", "")
+        prefix = prefix[0] if isinstance(prefix, list) else prefix
+        suffix = kwargs.get("suffix", "")
+        suffix = suffix[0] if isinstance(suffix, list) else suffix
+        
+        if len(prefix) == 0 and len(suffix) == 0:
+            raise ValueError("Please provide either prefix or suffix.")
+        
+        prefix = prefix.split(",")
+        suffix = suffix.split(",")
+        
+        print("path", path)
+        print("parent_folder_id", parent_folder_id)
+        print("service_account_file_path", service_account_file_path)
+        print("service_account_json", service_account_json)
+        print("prifix", prefix)
+        print("suffix", suffix)
+        
+        if not service_account_file_path and not service_account_json:
+            raise ValueError("Please provide either service_account_file_path or service_account_json.")
+        
+        if service_account_json:
+            comfui_path = folder_paths.get_output_directory()
+            service_account_file_path = os.path.join(comfui_path, "service_account.json")
+            with open(service_account_file_path, "w") as f:
+                f.write(service_account_json)
+            print(f"Service account JSON written to {service_account_file_path}")
+
+        SCOPES = ['https://www.googleapis.com/auth/drive']
+        credentials = service_account.Credentials.from_service_account_file(
+            service_account_file_path, scopes=SCOPES
+        )
+        service = build('drive', 'v3', credentials=credentials)
+
+        new_folder_name = os.path.basename(path)
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        new_folder_name = f"{current_time}_{new_folder_name}"
+        local_directory_path = path
+        # 2. Create a new folder in Google Drive under the parent folder
+        folder_metadata = {
+            'name': new_folder_name,
+            'mimeType': 'application/vnd.google-apps.folder',
+            'parents': [parent_folder_id]
+        }
+        created_folder = service.files().create(body=folder_metadata, fields='id').execute()
+        new_folder_id = created_folder.get('id')
+        print(f"Created new folder '{new_folder_name}' with ID: {new_folder_id}")
+
+        # 3. Find all .zip files in the local directory
+        files = []
+        for file in os.listdir(local_directory_path):
+            prifix_match = any([file.startswith(p) for p in prefix])
+            suffix_match = any([file.endswith(s) for s in suffix])
+            print(file, prifix_match, suffix_match)
+            if prifix_match or suffix_match:
+                files.append(file)
+
+        print(f"Found {len(files)} files to upload")
+        print(files)
+        # 4. Upload each zip file to the newly created folder
+        image_suffix = [".jpg", ".jpeg", ".png", ".bmp", ".gif"]
+        for file in files:
+            file_path = os.path.join(local_directory_path, file)
+            if file.endswith(".zip"):
+                media = MediaFileUpload(file_path, mimetype='application/zip', resumable=True)
+            if file.endswith(".txt"):
+                media = MediaFileUpload(file_path, mimetype='text/plain', resumable=True)
+            if os.path.splitext(file.lower())[-1] in image_suffix:
+                media = MediaFileUpload(file_path, mimetype='image/jpeg', resumable=True)
+
+            file_metadata = {
+                'name': file,
+                'parents': [new_folder_id]
+            }
+
+            upload_response = service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id'
+            ).execute()
+
+            uploaded_file_id = upload_response.get('id')
+            print(f"Uploaded '{file}' to folder ID {new_folder_id} with file ID: {uploaded_file_id}")
+            
+        return (f"Uploaded {len(files)} files to Google Drive folder {new_folder_id}",)
+            
