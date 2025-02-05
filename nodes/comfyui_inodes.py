@@ -861,6 +861,8 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from datetime import datetime
+from fpdf import FPDF
+
 
 class IUploadToGoogleDrive:
     def __init__(self):
@@ -891,10 +893,12 @@ class IUploadToGoogleDrive:
         print("Upload to Google Drive")
         path = path[0] if isinstance(path, list) else path
         parent_folder_id = parent_folder_id[0] if isinstance(parent_folder_id, list) else parent_folder_id
+        
         service_account_file_path = kwargs.get("service_account_file_path", "")
         service_account_file_path = service_account_file_path[0] if isinstance(service_account_file_path, list) else service_account_file_path
         service_account_json = kwargs.get("service_account_json", "")
         service_account_json = service_account_json[0] if isinstance(service_account_json, list) else service_account_json
+        
         prefix = kwargs.get("prefix", "")
         prefix = prefix[0] if isinstance(prefix, list) else prefix
         suffix = kwargs.get("suffix", "")
@@ -910,17 +914,22 @@ class IUploadToGoogleDrive:
         print("parent_folder_id", parent_folder_id)
         print("service_account_file_path", service_account_file_path)
         print("service_account_json", service_account_json)
-        print("prifix", prefix)
+        print("prefix", prefix)
         print("suffix", suffix)
         
         if not service_account_file_path and not service_account_json:
             raise ValueError("Please provide either service_account_file_path or service_account_json.")
         
+        # If service_account_json is provided, write it to a file so we can load credentials from it
         if service_account_json:
-            comfui_path = folder_paths.get_output_directory()
-            service_account_file_path = os.path.join(comfui_path, "service_account.json")
-            with open(service_account_file_path, "w") as f:
+            # If you have a specific path you want to store the JSON, adjust accordingly.
+            # For example, if you want to store in ComfyUI's output directory:
+            # comfui_path = folder_paths.get_output_directory()
+            # service_account_file_path = os.path.join(comfui_path, "service_account.json")
+            
+            with open("service_account.json", "w") as f:
                 f.write(service_account_json)
+            service_account_file_path = "service_account.json"
             print(f"Service account JSON written to {service_account_file_path}")
 
         SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -929,11 +938,12 @@ class IUploadToGoogleDrive:
         )
         service = build('drive', 'v3', credentials=credentials)
 
+        # 1. Create a new folder in Google Drive under the parent folder
         new_folder_name = os.path.basename(path)
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
         new_folder_name = f"{current_time}_{new_folder_name}"
         local_directory_path = path
-        # 2. Create a new folder in Google Drive under the parent folder
+        
         folder_metadata = {
             'name': new_folder_name,
             'mimeType': 'application/vnd.google-apps.folder',
@@ -942,29 +952,51 @@ class IUploadToGoogleDrive:
         created_folder = service.files().create(body=folder_metadata, fields='id').execute()
         new_folder_id = created_folder.get('id')
         print(f"Created new folder '{new_folder_name}' with ID: {new_folder_id}")
-
-        # 3. Find all .zip files in the local directory
+        
+        # 2. Share the new folder publicly (view/read)
+        permission_body = {
+            'role': 'reader',
+            'type': 'anyone'
+        }
+        service.permissions().create(
+            fileId=new_folder_id,
+            body=permission_body
+        ).execute()
+        
+        # Get the folder's webViewLink
+        folder_info = service.files().get(fileId=new_folder_id, fields='id, name, webViewLink').execute()
+        shared_link = folder_info.get('webViewLink', '')
+        print(f"Folder shared link: {shared_link}")
+        
+        # 3. Find files that match prefix or suffix in the local directory
         files = []
         for file in os.listdir(local_directory_path):
-            prifix_match = any([file.startswith(p) for p in prefix])
+            prefix_match = any([file.startswith(p) for p in prefix])
             suffix_match = any([file.endswith(s) for s in suffix])
-            print(file, prifix_match, suffix_match)
-            if prifix_match or suffix_match:
+            if prefix_match or suffix_match:
                 files.append(file)
 
-        print(f"Found {len(files)} files to upload")
-        print(files)
-        # 4. Upload each zip file to the newly created folder
-        image_suffix = [".jpg", ".jpeg", ".png", ".bmp", ".gif"]
+        print(f"Found {len(files)} files to upload: {files}")
+        
+        # 4. Upload each matching file to the newly created folder
+        image_suffixes = [".jpg", ".jpeg", ".png", ".bmp", ".gif"]
         for file in files:
             file_path = os.path.join(local_directory_path, file)
-            if file.endswith(".zip"):
-                media = MediaFileUpload(file_path, mimetype='application/zip', resumable=True)
-            if file.endswith(".txt"):
-                media = MediaFileUpload(file_path, mimetype='text/plain', resumable=True)
-            if os.path.splitext(file.lower())[-1] in image_suffix:
-                media = MediaFileUpload(file_path, mimetype='image/jpeg', resumable=True)
-
+            
+            # Decide the mimetype
+            if file.lower().endswith(".zip"):
+                media_type = 'application/zip'
+            elif file.lower().endswith(".txt"):
+                media_type = 'text/plain'
+            elif os.path.splitext(file.lower())[-1] in image_suffixes:
+                # You can refine the logic for other image types if needed
+                media_type = 'image/jpeg'
+            else:
+                # Default if none of the above
+                media_type = 'application/octet-stream'
+            
+            media = MediaFileUpload(file_path, mimetype=media_type, resumable=True)
+            
             file_metadata = {
                 'name': file,
                 'parents': [new_folder_id]
@@ -978,6 +1010,45 @@ class IUploadToGoogleDrive:
 
             uploaded_file_id = upload_response.get('id')
             print(f"Uploaded '{file}' to folder ID {new_folder_id} with file ID: {uploaded_file_id}")
-            
-        return (f"Uploaded {len(files)} files to Google Drive folder {new_folder_id}",)
+        
+        # 5. Generate a PDF file containing the “Thank You” text and the shareable link
+        #    Using FPDF (https://pypi.org/project/fpdf/)
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        
+        text_lines = [
+            "Thank You for Your Purchase!",
+            "We are thrilled to have you as a customer and hope you enjoy our Designs!",
+            "",
+            "Download Your Files",
+            "Click the link below to download your files:",
+            "",
+            shared_link  # The link we got from webViewLink
+        ]
+        # Write lines; you could also use pdf.multi_cell
+        for line in text_lines:
+            pdf.cell(0, 10, line, ln=1)
+        
+        pdf_file_path = os.path.join(local_directory_path, "Thank_You.pdf")
+        pdf.output(pdf_file_path)
+        print(f"PDF generated: {pdf_file_path}")
+        
+        # 6. Upload the PDF to the new folder
+        pdf_media = MediaFileUpload(pdf_file_path, mimetype='application/pdf', resumable=True)
+        pdf_metadata = {
+            'name': "Thank_You.pdf",
+            'parents': [new_folder_id]
+        }
+        upload_response = service.files().create(
+            body=pdf_metadata,
+            media_body=pdf_media,
+            fields='id'
+        ).execute()
+        
+        pdf_uploaded_file_id = upload_response.get('id')
+        print(f"Uploaded 'Thank_You.pdf' to folder ID {new_folder_id} with file ID: {pdf_uploaded_file_id}")
+        
+        return (f"Uploaded {len(files)} files + PDF to Google Drive folder {new_folder_id}\n"
+                f"Shareable link: {shared_link}",)
             
